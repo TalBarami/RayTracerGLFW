@@ -1,13 +1,13 @@
 #include <iostream>
+#include "../engine2D/sceneParser.h"
+#include "../display/display.h"
+#include "../engine2D/mesh.h"
+#include "../display/inputManager.h"
 /*#include "display.h"
 #include "mesh.h"
 #include "debugTimer.h"
 #include "inputManager.h"
 #include "sceneParser.h"*/
-#include "../engine2D/sceneParser.h"
-#include "../display/display.h"
-#include "../engine2D/mesh.h"
-#include "../display/inputManager.h"
 
 using namespace glm;
 
@@ -36,6 +36,8 @@ int main(int argc,char** argv)
 
 		glfwPollEvents();
 	}
+
+
 	//getchar();
 	return 0;
 }
