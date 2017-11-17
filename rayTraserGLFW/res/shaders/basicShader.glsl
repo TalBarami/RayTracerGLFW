@@ -3,10 +3,10 @@
 uniform vec4 eye;
 uniform vec4 ambient;
 uniform vec4[20] objects;
-uniform vec4[20] objColors;
-uniform vec4[10] lightsDirection;
-uniform vec4[10] lightsIntensity;
-uniform vec4[10] lightPosition;
+uniform vec4[20] objColors;// Ka = Kd for every object[i]
+uniform vec4[10] lightsDirection;// w = 0.0 => directional light; w = 1.0 => spotlight
+uniform vec4[10] lightsIntensity;// (R,G,B,A)
+uniform vec4[10] lightPosition;// Positions for spotlights
 uniform ivec3 sizes; //number of objects & number of lights
 
 in vec3 position1;
@@ -88,12 +88,51 @@ vec3 colorCalc(vec3 intersectionPoint)
 		coefficient = 0.5;
 	}
 	
+	//Basic color
 	vec3 color = coefficient * objColors[minIndex].xyz;
-	//vec3 color = vec3(1, 0, 1);
+
+	/******** Lighting [pseudo-code] *********/
+	// Ambient and Emission calculations
+	vec3 color = calcEmissionColor(intersectionPoint)+
+				 calcAmbientColor(intersectionPoint);
 	
+	// Diffuse and Specular calculations
+	for(int i=0; i<getNumLights(); i++){
+		vec4 light = getLight(i);
+		vec4 light_ray = ConstructRaytoLight(intersectionPoint, light);
+		// Add color only if light is not occulded
+		if(!occulded(light_ray, light)){
+			color += calcDiffuseColor(light)+
+					 calcSpecularColor(light);
+		}
+	}
+	//vec3 color = vec3(1, 0, 1);
     return color;
 }
 
+vec3 calcEmissionColor(vec3 position0){
+	return vec3(0,0,0);
+}
+
+vec3 calcAmbientColor(vec3 position0){
+	return ambient;//vec4(0.1, 0.2, 0.3, 1.0);
+}
+
+bool occulded(vec4 light_ray, vec4 light){
+	return true;
+}
+
+vec3 calcDiffuseColor(vec4 light){
+	return vec3(0,0,0);
+}
+
+vec3 calcSpecularColor(vec4 light){
+	return vec3(0,0,0);
+}
+
+vec4 getSpecularK(){
+	return vec4(0.7,0.7,0.7,1.0);
+}
 void main()
 {  
    gl_FragColor = vec4(colorCalc(eye.xyz),1);      
