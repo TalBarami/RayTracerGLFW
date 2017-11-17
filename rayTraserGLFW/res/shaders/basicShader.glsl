@@ -14,7 +14,7 @@ in vec3 position1;
 float quadraticEquation(float a, float b, float c){
 	float delta = b * b - 4.0 * a * c;	
 	if(delta < 0){
-		return -1;
+		return -1.0;
 	}
 	float x1 = (-b + sqrt(delta)) / (2.0 * a);
 	float x2 = (-b - sqrt(delta)) / (2.0 * a); 
@@ -39,7 +39,7 @@ float planeIntersection(vec3 p0, vec3 v, vec4 plane){
 	
 	float distance = -(d + p0.z * n.z + p0.y * n.y + p0.x * n.x)/(v.z * n.z + v.y * n.y + v.x * n.x);
 	if(distance <  0){
-		return -1;
+		return -1.0;
 	} else{
 		return distance;
 	}
@@ -74,7 +74,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	float distance = 1000000;
 	float t_obj;
 	int minIndex = -1;
-	float coefficient = 1;
+	float coefficient = 1.0;
 	
 	for(int i=0; i<sizes.x; i++){
 		t_obj = intersection(p0, v, objects[i]);
