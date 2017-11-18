@@ -66,10 +66,6 @@ bool squareCoefficient(vec3 p){
 	return mod(int(1.5*p.x),2) == mod(int(1.5*p.y),2);
 }
 
-vec3 calcEmissionColor(vec3 position0){
-	return vec3(0,0,0);
-}
-
 vec3 calcAmbientColor(int intersection){
 	//return ambient.xyz * objColors[intersection].xyz;
 	return vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz;
@@ -79,36 +75,20 @@ bool occulded(vec4 light_ray, vec4 light){
 	return true;
 }
 
-bool isDirectional(vec4 light){
-	return light.w == 0;
+bool isDirectional(vec4 lightDirection){
+	return lightDirection.w == 0;
 }
 
 vec3 sphereNormal(vec3 o, vec3 p){
 	return (p - o) / length(p - o);
 }
 
-vec3 directionalIntensity(vec3 lightIntensity, vec3 lightDirection, vec3 L){
-	return lightIntensity * dot(lightDirection, L);
+vec3 surfaceNormal(vec4 obj, vec3 p){
+	return isSphere(obj) ? -((p-obj.xyz) / obj.w) : obj.xyz;
 }
 
-vec3 spotlightIntensity(vec4 lightDirection, vec4 lightIntensity, vec3 L){
-	return vec3(0,0,0);
-}
-
-vec3 calcDiffuseColor(int intersection, int light, vec3 p){
-	vec3 N = isSphere(objects[intersection]) ? sphereNormal(objects[intersection].xyz, p) : objects[intersection].xyz;
-	vec3 L = normalize(lightsDirection[light].xyz);
-	float cosTheta = dot(normalize(N), normalize(L));//dot(N, L) / (length(N) * length(L));
-	vec3 I = isDirectional(lightDirection) ? directionalIntensity(lightIntensity.xyz, lightDirection.xyz, L) : vec3(0,0,0);
-	return objColors[intersection].xyz * cosTheta * I;
-}
-
-vec3 calcSpecularColor(vec4 light){
-	return vec3(0,0,0);
-}
-
-vec4 getSpecularK(){
-	return vec4(0.7,0.7,0.7,1.0);
+vec3 intensity(vec4 lightIntensity, vec4 lightDirection, vec3 L){
+	return lightIntensity.xyz * dot(lightDirection.xyz, L);
 }
 
 int lightsCount(){
@@ -119,13 +99,6 @@ int objectsCount(){
 	return sizes.x;
 }
 
-vec4 getLight(int i){
-	return lightsDirection[i];
-}
-
-vec4 ConstructRaytoLight(vec3 position0, vec4 light){
-		return light.xyz - position0;
-}
 
 vec3 colorCalc(vec3 intersectionPoint)
 {
@@ -154,19 +127,26 @@ vec3 colorCalc(vec3 intersectionPoint)
 	// Ambient calculations
 	vec3 ambient = coefficient * calcAmbientColor(intersection);
 	// Diffuse and Specular calculations
-	vec3 diffuse = vec3(0, 0, 0);
-	for(int i=0; i<lightsCount(); i++){
-		diffuse = diffuse + calcDiffuseColor(intersection, i, p);
-		/*vec4 light = getLight(i);
-		vec4 light_ray = ConstructRaytoLight(intersectionPoint, light);
-		// Add color only if light is not occulded
-		if(!occulded(light_ray, light)){
-			color += calcDiffuseColor(light)+
-					 calcSpecularColor(light);
-		}*/
+	vec3 diffuse = vec3(0.0, 0.0, 0.0);
+	vec3 specular = vec3(0.0, 0.0, 0.0);
+	
+	for(int light=0; light<lightsCount(); light++){
+		vec3 Kd = objColors[intersection].xyz;
+		vec3 N = normalize(surfaceNormal(objects[intersection], p));
+		vec3 L = normalize(lightPosition[light].xyz - p);
+		vec3 I = intensity(lightsIntensity[light], lightsDirection[light], L);
+		
+		diffuse = diffuse + ((Kd * dot(N, L)) * I);
+		
+		vec3 Ks = vec3(0.7, 0.7, 0.7);
+		vec3 R = (2 * N) * dot(L, N) - L;
+		float n = objColors[intersection].w;
+		
+		specular = specular + ((Ks.xyz * dot(R, v)) * I);
 	}
 	
-	vec3 result = ambient + diffuse;
+	// Phong model:
+	vec3 result = ambient + diffuse + specular;
 	
     return result;
 }
