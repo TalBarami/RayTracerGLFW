@@ -6,7 +6,7 @@ uniform vec4[20] objects;
 uniform vec4[20] objColors;// Ka = Kd for every object[i]
 uniform vec4[10] lightsDirection;// w = 0.0 => directional light; w = 1.0 => spotlight
 uniform vec4[10] lightsIntensity;// (R,G,B,A)
-uniform vec4[10] lightPosition;// Positions for spotlights
+uniform vec4[10] lightPosition;// Positions for spotlights, w = shine
 uniform ivec3 sizes; //number of objects & number of lights
 
 in vec3 position1;
@@ -67,7 +67,6 @@ bool squareCoefficient(vec3 p){
 }
 
 vec3 calcAmbientColor(int intersection){
-	//return ambient.xyz * objColors[intersection].xyz;
 	return vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz;
 }
 
@@ -120,21 +119,25 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	for(int light=0; light<lightsCount(); light++){
 		vec3 Kd = objColors[intersection].xyz;
-		vec3 N = normalize(isSphere(objects[intersection]) ? (objects[intersection].xyz - p) / objects[intersection].w : objects[intersection].xyz);
-		vec3 L = normalize(lightPosition[light].xyz - p);
+		vec3 N = normalize(isSphere(objects[intersection]) ? -(p - objects[intersection].xyz) / length(p - objects[intersection].xyz) : objects[intersection].xyz);
+		//TODO: vec3 L = normalize(isDirectional(lightsDirection[light]) ? (lightsDirection[light].xyz - p));
+		vec3 L = normalize(lightsDirection[light].xyz - p);
 		vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
 		
-		diffuse = diffuse + ((Kd * dot(N, L)) * I);
+		diffuse = diffuse + (Kd * (dot(N, L) / (length(N) * length(L))) * I);
 		
 		vec3 Ks = vec3(0.7, 0.7, 0.7);
-		vec3 R = normalize(L - (2 * N) * dot(L, N));
+		vec3 R = normalize((2 * N) * dot(L, N) - L);
 		float n = objColors[intersection].w;
 		
-		specular = specular + ((Ks.xyz * dot(R, -v)) * I);
+		specular = specular + (Ks.xyz * pow(dot(R, -v), n) * I);
 	}
 	
 	// Phong model:
-	vec3 result = ambient + diffuse + specular;
+	vec3 result = vec3(0.0, 0.0, 0.0);
+	result += ambient;
+	result += diffuse;
+	result += specular;
 	
     return result;
 }
