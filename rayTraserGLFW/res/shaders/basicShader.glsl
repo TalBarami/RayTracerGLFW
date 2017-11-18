@@ -70,16 +70,37 @@ vec3 calcEmissionColor(vec3 position0){
 	return vec3(0,0,0);
 }
 
-vec3 calcAmbientColor(vec3 position0){
-	return ambient;//vec4(0.1, 0.2, 0.3, 1.0);
+vec3 calcAmbientColor(int intersection){
+	//return ambient.xyz * objColors[intersection].xyz;
+	return vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz;
 }
 
 bool occulded(vec4 light_ray, vec4 light){
 	return true;
 }
 
-vec3 calcDiffuseColor(vec4 light){
+bool isDirectional(vec4 light){
+	return light.w == 0;
+}
+
+vec3 sphereNormal(vec3 o, vec3 p){
+	return (p - o) / length(p - o);
+}
+
+vec3 directionalIntensity(vec3 lightIntensity, vec3 lightDirection, vec3 L){
+	return lightIntensity * dot(lightDirection, L);
+}
+
+vec3 spotlightIntensity(vec4 lightDirection, vec4 lightIntensity, vec3 L){
 	return vec3(0,0,0);
+}
+
+vec3 calcDiffuseColor(int intersection, int light, vec3 p){
+	vec3 N = isSphere(objects[intersection]) ? sphereNormal(objects[intersection].xyz, p) : objects[intersection].xyz;
+	vec3 L = normalize(lightsDirection[light].xyz);
+	float cosTheta = dot(normalize(N), normalize(L));//dot(N, L) / (length(N) * length(L));
+	vec3 I = isDirectional(lightDirection) ? directionalIntensity(lightIntensity.xyz, lightDirection.xyz, L) : vec3(0,0,0);
+	return objColors[intersection].xyz * cosTheta * I;
 }
 
 vec3 calcSpecularColor(vec4 light){
@@ -90,8 +111,12 @@ vec4 getSpecularK(){
 	return vec4(0.7,0.7,0.7,1.0);
 }
 
-int getNumLights(){
-	return 0;
+int lightsCount(){
+	return sizes.y;
+}
+
+int objectsCount(){
+	return sizes.x;
 }
 
 vec4 getLight(int i){
@@ -109,41 +134,41 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	float distance = 1000000;
 	float t_obj;
-	int minIndex = -1;
+	int intersection = -1;
 	float coefficient = 1.0;
 	
-	for(int i=0; i<sizes.x; i++){
+	for(int i=0; i<objectsCount(); i++){
 		t_obj = intersection(p0, v, objects[i]);
 		if(t_obj < distance && t_obj != -1){
 			distance = t_obj;
-			minIndex = i;
+			intersection = i;
 		}
 	}
+
 	vec3 p = p0 + distance * v;
-	if(!isSphere(objects[minIndex]) && ((squareCoefficient(p) && quart1_3(p)) || !(squareCoefficient(p) || quart1_3(p)))){
+	if(!isSphere(objects[intersection]) && ((squareCoefficient(p) && quart1_3(p)) || !(squareCoefficient(p) || quart1_3(p)))){
 		coefficient = 0.5;
 	}
 	
-	//Basic color
-	vec3 color = coefficient * objColors[minIndex].xyz;
-
 	/******** Lighting [pseudo-code] *********/
-	// Ambient and Emission calculations
-	color += calcEmissionColor(intersectionPoint)+
-				 calcAmbientColor(intersectionPoint);
-	
+	// Ambient calculations
+	vec3 ambient = coefficient * calcAmbientColor(intersection);
 	// Diffuse and Specular calculations
-	for(int i=0; i<getNumLights(); i++){
-		vec4 light = getLight(i);
+	vec3 diffuse = vec3(0, 0, 0);
+	for(int i=0; i<lightsCount(); i++){
+		diffuse = diffuse + calcDiffuseColor(intersection, i, p);
+		/*vec4 light = getLight(i);
 		vec4 light_ray = ConstructRaytoLight(intersectionPoint, light);
 		// Add color only if light is not occulded
 		if(!occulded(light_ray, light)){
 			color += calcDiffuseColor(light)+
 					 calcSpecularColor(light);
-		}
+		}*/
 	}
-	//vec3 color = vec3(1, 0, 1);
-    return color;
+	
+	vec3 result = ambient + diffuse;
+	
+    return result;
 }
 
 
