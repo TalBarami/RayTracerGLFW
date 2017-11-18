@@ -79,18 +79,6 @@ bool isDirectional(vec4 lightDirection){
 	return lightDirection.w == 0;
 }
 
-vec3 sphereNormal(vec3 o, vec3 p){
-	return (p - o) / length(p - o);
-}
-
-vec3 surfaceNormal(vec4 obj, vec3 p){
-	return isSphere(obj) ? -((p-obj.xyz) / obj.w) : obj.xyz;
-}
-
-vec3 intensity(vec4 lightIntensity, vec4 lightDirection, vec3 L){
-	return lightIntensity.xyz * dot(lightDirection.xyz, L);
-}
-
 int lightsCount(){
 	return sizes.y;
 }
@@ -123,7 +111,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 		coefficient = 0.5;
 	}
 	
-	/******** Lighting [pseudo-code] *********/
+	/******** Lighting *********/
 	// Ambient calculations
 	vec3 ambient = coefficient * calcAmbientColor(intersection);
 	// Diffuse and Specular calculations
@@ -132,17 +120,17 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	for(int light=0; light<lightsCount(); light++){
 		vec3 Kd = objColors[intersection].xyz;
-		vec3 N = normalize(surfaceNormal(objects[intersection], p));
+		vec3 N = normalize(isSphere(objects[intersection]) ? (objects[intersection].xyz - p) / objects[intersection].w : objects[intersection].xyz);
 		vec3 L = normalize(lightPosition[light].xyz - p);
-		vec3 I = intensity(lightsIntensity[light], lightsDirection[light], L);
+		vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
 		
 		diffuse = diffuse + ((Kd * dot(N, L)) * I);
 		
 		vec3 Ks = vec3(0.7, 0.7, 0.7);
-		vec3 R = (2 * N) * dot(L, N) - L;
+		vec3 R = normalize(L - (2 * N) * dot(L, N));
 		float n = objColors[intersection].w;
 		
-		specular = specular + ((Ks.xyz * dot(R, v)) * I);
+		specular = specular + ((Ks.xyz * dot(R, -v)) * I);
 	}
 	
 	// Phong model:
