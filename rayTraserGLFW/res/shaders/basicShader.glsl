@@ -105,7 +105,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	/******** Lighting *********/
 	// Ambient calculations
-	vec3 ambient = coefficient * (vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz);
+	vec3 ambient = (vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz);
 	// Diffuse and Specular calculations
 	vec3 diffuse = vec3(0.0, 0.0, 0.0);
 	vec3 specular = vec3(0.0, 0.0, 0.0);
@@ -113,27 +113,41 @@ vec3 colorCalc(vec3 intersectionPoint)
 	for(int light=0; light<lightsCount(); light++){
 		vec3 Kd = objColors[intersection].xyz;
 		vec3 N = normalize(isSphere(objects[intersection]) ? -(p - objects[intersection].xyz) : objects[intersection].xyz);
-		vec3 L;// = normalize(p - lightPosition[light].xyz);
+		vec3 L = vec3(0,0,0);
+		bool S = true;
+		
 		if(lightsDirection[light].w == 0.0){
 			L = normalize(lightsDirection[light].xyz);
-		} else {//if(lightPosition[light].w < dot(normalize(lightsDirection[light].xyz), normalize(p - lightPosition[light].xyz))) {
+		} else if(lightPosition[light].w < dot(normalize(lightsDirection[light].xyz), normalize(p - lightPosition[light].xyz))) {
 			L = normalize(p - lightPosition[light].xyz);
+		} else {
+			S = false;
 		}
-		vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
 		
-		diffuse += (Kd * dot(N, L) * I);
+		for(int i=0; i<objectsCount(); i++){
+			if(intersection(p, -lightsDirection[light].xyz, objects[i]) >= 0.001){
+				S = false;
+			}
+		}
 		
-		vec3 Ks = vec3(0.7, 0.7, 0.7);
-		vec3 R = normalize(L - (2 * N) * dot(L, N));
-		float n = objColors[intersection].w;
-		
-		specular += (Ks * pow(dot(R, v), n) * I);
+		if(S){
+			vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
+			
+			diffuse += (Kd * dot(N, L) * I);
+			
+			vec3 Ks = vec3(0.7, 0.7, 0.7);
+			vec3 R = normalize(L - (2 * N) * dot(L, N));
+			float n = objColors[intersection].w;
+			
+			specular += (Ks * pow(dot(R, v), n) * I);
+		}
 	}
 	
 	// Phong model:
 	vec3 result = vec3(0.0, 0.0, 0.0);
 	result += ambient;
-	result += diffuse;
+	result += isSphere(objects[intersection]) ? diffuse : coefficient * diffuse;
+	//result += diffuse;
 	result += specular;
 
     return result;
