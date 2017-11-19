@@ -113,16 +113,21 @@ vec3 colorCalc(vec3 intersectionPoint)
 	for(int light=0; light<lightsCount(); light++){
 		vec3 Kd = objColors[intersection].xyz;
 		vec3 N = normalize(isSphere(objects[intersection]) ? -(p - objects[intersection].xyz) : objects[intersection].xyz);
-		vec3 L = normalize(lightPosition[light].xyz - p);
+		vec3 L;// = normalize(p - lightPosition[light].xyz);
+		if(lightsDirection[light].w == 0.0){
+			L = normalize(lightsDirection[light].xyz);
+		} else {//if(lightPosition[light].w < dot(normalize(lightsDirection[light].xyz), normalize(p - lightPosition[light].xyz))) {
+			L = normalize(p - lightPosition[light].xyz);
+		}
 		vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
 		
-		diffuse = diffuse + (Kd * (dot(N, L) / (length(N) * length(L))) * I);
+		diffuse += (Kd * dot(N, L) * I);
 		
 		vec3 Ks = vec3(0.7, 0.7, 0.7);
 		vec3 R = normalize(L - (2 * N) * dot(L, N));
 		float n = objColors[intersection].w;
 		
-		specular = specular + (Ks.xyz * pow(dot(R, -v), n) * (-I));
+		specular += (Ks * pow(dot(R, v), n) * I);
 	}
 	
 	// Phong model:
@@ -130,7 +135,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	result += ambient;
 	result += diffuse;
 	result += specular;
-	
+
     return result;
 }
 
