@@ -66,10 +66,6 @@ bool squareCoefficient(vec3 p){
 	return mod(int(1.5*p.x),2) == mod(int(1.5*p.y),2);
 }
 
-vec3 calcAmbientColor(int intersection){
-	return vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz;
-}
-
 bool occulded(vec4 light_ray, vec4 light){
 	return true;
 }
@@ -92,10 +88,9 @@ vec3 colorCalc(vec3 intersectionPoint)
 	vec3 p0 = intersectionPoint;
 	vec3 v = normalize(position1 - p0);
 	
-	float distance = 1000000;
+	float distance = 100000000;
 	float t_obj;
 	int intersection = -1;
-	float coefficient = 1.0;
 	
 	for(int i=0; i<objectsCount(); i++){
 		t_obj = intersection(p0, v, objects[i]);
@@ -106,31 +101,28 @@ vec3 colorCalc(vec3 intersectionPoint)
 	}
 
 	vec3 p = p0 + distance * v;
-	if(!isSphere(objects[intersection]) && ((squareCoefficient(p) && quart1_3(p)) || !(squareCoefficient(p) || quart1_3(p)))){
-		coefficient = 0.5;
-	}
+	float coefficient = (!isSphere(objects[intersection]) && ((squareCoefficient(p) && !quart1_3(p)) || (!squareCoefficient(p) && quart1_3(p)))) ? 1.0 : 0.5;
 	
 	/******** Lighting *********/
 	// Ambient calculations
-	vec3 ambient = coefficient * calcAmbientColor(intersection);
+	vec3 ambient = coefficient * (vec3(0.1, 0.2, 0.3) * objColors[intersection].xyz);
 	// Diffuse and Specular calculations
 	vec3 diffuse = vec3(0.0, 0.0, 0.0);
 	vec3 specular = vec3(0.0, 0.0, 0.0);
 	
 	for(int light=0; light<lightsCount(); light++){
 		vec3 Kd = objColors[intersection].xyz;
-		vec3 N = normalize(isSphere(objects[intersection]) ? -(p - objects[intersection].xyz) / length(p - objects[intersection].xyz) : objects[intersection].xyz);
-		//TODO: vec3 L = normalize(isDirectional(lightsDirection[light]) ? (lightsDirection[light].xyz - p));
-		vec3 L = normalize(lightsDirection[light].xyz - p);
+		vec3 N = normalize(isSphere(objects[intersection]) ? -(p - objects[intersection].xyz) : objects[intersection].xyz);
+		vec3 L = normalize(lightPosition[light].xyz - p);
 		vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
 		
 		diffuse = diffuse + (Kd * (dot(N, L) / (length(N) * length(L))) * I);
 		
 		vec3 Ks = vec3(0.7, 0.7, 0.7);
-		vec3 R = normalize((2 * N) * dot(L, N) - L);
+		vec3 R = normalize(L - (2 * N) * dot(L, N));
 		float n = objColors[intersection].w;
 		
-		specular = specular + (Ks.xyz * pow(dot(R, -v), n) * I);
+		specular = specular + (Ks.xyz * pow(dot(R, -v), n) * (-I));
 	}
 	
 	// Phong model:
