@@ -130,14 +130,14 @@ vec3 colorCalc(vec3 intersectionPoint)
 		}
 		
 		for(int i=0; i<objectsCount(); i++){
-			if(intersection(p, -L, objects[i]) >= 0.00001){
+			if(intersection(p, -L, objects[i]) >= 0.001){
 				S = false;
 			}
 		}
 		
 		if(S){
-			//vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
-			vec3 I = lightsIntensity[light].xyz;
+			vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
+			//vec3 I = lightsIntensity[light].xyz;
 			
 			diffuse += (Kd * dot(N, L) * I);
 			
@@ -149,11 +149,14 @@ vec3 colorCalc(vec3 intersectionPoint)
 		}
 	}
 	
+	if(!isSphere(objects[intersection])){
+		diffuse *= coefficient;
+	}
+	
 	// Phong model:
 	vec3 result = vec3(0.0, 0.0, 0.0);
 	result += ambient;
-	result += isSphere(objects[intersection]) ? diffuse : coefficient * diffuse;
-	//result += diffuse;
+	result += diffuse;
 	result += specular;
 
     return result;
