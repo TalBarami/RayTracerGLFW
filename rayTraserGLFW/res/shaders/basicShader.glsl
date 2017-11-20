@@ -18,8 +18,13 @@ float quadraticEquation(float a, float b, float c){
 	}
 	float x1 = (-b + sqrt(delta)) / (2.0 * a);
 	float x2 = (-b - sqrt(delta)) / (2.0 * a); 
-	
-	return min(x1, x2);
+	if(x1 > 0 && x2 > 0){
+		return min(x1, x2);
+	} else if(x1 < 0 && x2 < 0){
+		return -1;
+	} else{
+		return max(x1, x2);
+	}
 }
 
 float sphereIntersection(vec3 p0, vec3 v, vec4 sphere){
@@ -125,13 +130,14 @@ vec3 colorCalc(vec3 intersectionPoint)
 		}
 		
 		for(int i=0; i<objectsCount(); i++){
-			if(intersection(p, -lightsDirection[light].xyz, objects[i]) >= 0.001){
+			if(intersection(p, -L, objects[i]) >= 0.00001){
 				S = false;
 			}
 		}
 		
 		if(S){
-			vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
+			//vec3 I = lightsIntensity[light].xyz * dot(lightsDirection[light].xyz, L);
+			vec3 I = lightsIntensity[light].xyz;
 			
 			diffuse += (Kd * dot(N, L) * I);
 			
@@ -139,7 +145,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 			vec3 R = normalize(L - (2 * N) * dot(L, N));
 			float n = objColors[intersection].w;
 			
-			specular += (Ks * pow(dot(R, v), n) * I);
+			specular += (Ks * pow(dot(R, -v), n) * I);
 		}
 	}
 	

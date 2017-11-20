@@ -10,7 +10,7 @@
 #include "sceneParser.h"*/
 
 using namespace glm;
-
+	
 int main(int argc,char** argv)
 {
 	scene scn = scene("res/scene.txt");
