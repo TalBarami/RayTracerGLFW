@@ -18,13 +18,21 @@ float quadraticEquation(float a, float b, float c){
 	}
 	float x1 = (-b + sqrt(delta)) / (2.0 * a);
 	float x2 = (-b - sqrt(delta)) / (2.0 * a); 
-	if(x1 > 0 && x2 > 0){
+	
+	if(x1 <= x2 && x1 > 0 && x1 > 0.0001)
+		return x1;
+	else if (x2 < x1 && x2 > 0 && x2 > 0.0001)
+		return x2;
+	else 
+		return -1;
+	
+	/*if(x1 > 0 && x2 > 0){
 		return min(x1, x2);
-	} else if(x1 < 0 && x2 < 0){
+	} else if(x1 <= 0 && x2 <= 0){
 		return -1;
 	} else{
 		return max(x1, x2);
-	}
+	}*/
 }
 
 float sphereIntersection(vec3 p0, vec3 v, vec4 sphere){
