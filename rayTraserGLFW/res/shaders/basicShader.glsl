@@ -10,6 +10,7 @@ uniform vec4[10] lightPosition;// Positions for spotlights, w = shine
 uniform ivec3 sizes; //number of objects & number of lights
 
 in vec3 position1;
+float epsilon = 0.001;
 
 float sphereIntersection(vec3 p0, vec3 v, vec4 sphere){
 	vec3 o = sphere.xyz;
@@ -19,31 +20,33 @@ float sphereIntersection(vec3 p0, vec3 v, vec4 sphere){
 	float b = 2.0 * dot(v, d);
 	float c = dot(d, d) - (r * r);
 	
-	float delta = b * b - 4.0 * a * c;	
-	if(delta < 0.0){
+	float delta = b * b - 4.0 * a * c;
+	
+	if(delta < epsilon){
 		return -1.0;
 	}
 	float x1 = (-b + sqrt(delta)) / (2.0 * a);
 	float x2 = (-b - sqrt(delta)) / (2.0 * a); 
 	
-	if(x1 > 0.001 && x2 > 0.001){
+	
+	if(x1 > epsilon && x2 > epsilon){
 		return min(x1, x2);
-	} else if(x1 < 0.001 && x2 < 0.001){
-		return -1;
+	} else if(x1 < epsilon && x2 < epsilon){
+		return -1.0;
 	} else return max(x1, x2);
 }
 
 float planeIntersection(vec3 p0, vec3 v, vec4 plane){
-	vec3 N = plane.xyz;
+	vec3 N = normalize(plane.xyz);
 	float d = plane.w;
 	vec3 q = N * (-d);
 	
-	float distance = dot(N, (q-p0)/dot(N, v));
+	float t = dot(N, (q-p0)/dot(N, v));
 
-	if(distance <  0){
+	if(t <  epsilon){
 		return -1.0;
 	} else{
-		return distance;
+		return t;
 	}
 }
 
@@ -81,7 +84,7 @@ int objectsCount(){
 	return sizes.x;
 }
 
-bool isBlockedBySphere(vec3 p, vec3 dir, vec4 sphere, int light){
+bool isLightBlockedBySphere(vec3 p, vec3 dir, vec4 sphere, int light){
 	vec3 o = sphere.xyz;
 	float r = sphere.w;
 			
@@ -97,7 +100,24 @@ bool isBlockedBySphere(vec3 p, vec3 dir, vec4 sphere, int light){
 	float x1 = (-b + sqrt(delta)) / (2.0 * a);
 	float x2 = (-b - sqrt(delta)) / (2.0 * a); 
 	
-	if(x1 > 0.001 || x2 > 0.001){
+	
+	if(isDirectional(lightsDirection[light]) && (max(x1, x2) > epsilon)){
+		return true;
+	} else if(!isDirectional(lightsDirection[light]) && (x1 > epsilon || x2 > epsilon)) {
+		vec3 pMax = p + dir * min(x1, x2);
+		vec3 lightPos = lightPosition[light].xyz;
+		
+		float lightDistance = distance(lightPos, p);
+		float dMax = distance(lightPos, pMax) + distance(pMax, p);
+		
+		if(dMax + epsilon > lightDistance && dMax - epsilon < lightDistance) {
+			return true;
+		}
+	} 
+	return false;
+	
+	
+	/*if(x1 > epsilon || x2 > epsilon){
 		if(isDirectional(lightsDirection[light])){
 			return true;
 		} else {
@@ -108,47 +128,55 @@ bool isBlockedBySphere(vec3 p, vec3 dir, vec4 sphere, int light){
 			float lightDistance = distance(lightPos, p);
 			float d1 = distance(lightPos, p1) + distance(p1, p);
 			float d2 = distance(lightPos, p2) + distance(p2, p);
-			float delta2 = 0.001;
 			
-			if((d1 + delta2 > lightDistance && d1 - delta2 < lightDistance) || (d2 + delta2 > lightDistance && d2 - delta2 < lightDistance)){
+			if((d1 + epsilon > lightDistance && d1 - epsilon < lightDistance) || (d2 + epsilon > lightDistance && d2 - epsilon < lightDistance)){
 				return true;
 			}
 		}
 	}
+	return false;*/
+	
+}
+
+bool isLightBlockedByPlane(vec3 p, vec3 dir, vec4 plane, int light){
 	return false;
 }
 
-bool isBlockedByPlane(vec3 p, vec3 dir, vec4 plane, int light){
-	return false;
-}
-
-bool isBlockedBy(vec3 p, vec3 dir, vec4 obj, int light){
+bool isLightBlockedBy(vec3 p, vec3 dir, vec4 obj, int light){
 	if(isSphere(obj)){
-		return isBlockedBySphere(p, dir, obj, light);
+		return isLightBlockedBySphere(p, dir, obj, light);
 	} else{
-		return isBlockedByPlane(p, dir, obj, light);
+		return isLightBlockedByPlane(p, dir, obj, light);
 	}
 }
 
 vec3 colorCalc(vec3 intersectionPoint)
 {
-	vec3 p0 = intersectionPoint;
-	vec3 v = normalize(position1 - p0);
+	vec3 v = normalize(position1 - intersectionPoint);
 	
 	float distance = 100000000;
 	float t_obj;
 	int intersection = -1;
 	
 	for(int i=0; i<objectsCount(); i++){
-		t_obj = intersection(p0, v, objects[i]);
-		if(t_obj < distance && t_obj >= 0){
+		t_obj = intersection(intersectionPoint, v, objects[i]);
+		if(t_obj < distance && t_obj >= 0.001){
 			distance = t_obj;
 			intersection = i;
 		}
 	}
+	
+	if(intersection == -1){
+		return vec3(0,0,0);
+	}
 
-	vec3 p = p0 + distance * v;
-	float coefficient = (!isSphere(objects[intersection]) && ((squareCoefficient(p) && !quart1_3(p)) || (!squareCoefficient(p) && quart1_3(p)))) ? 1.0 : 0.5;
+	vec3 p = intersectionPoint + distance * v;
+	float coefficient = (!isSphere(objects[intersection]) &&
+							((squareCoefficient(p) && !quart1_3(p)) ||
+							 (!squareCoefficient(p) && quart1_3(p))))
+						 ? 1.0 : 0.5;
+						 
+						 
 	
 	/******** Lighting *********/
 	// Ambient calculations
@@ -175,7 +203,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 		}
 		
 		for(int j=0; j<objectsCount(); j++){
-			if(isSphere(objects[j]) && isBlockedBy(p, -L, objects[j], i)){
+			if(isLightBlockedBy(p, -L, objects[j], i)){
 				addLight = false;
 			}
 		}
