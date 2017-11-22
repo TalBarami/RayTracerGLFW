@@ -31,7 +31,7 @@ Shader::Shader(const std::string& fileName)
 	m_uniforms[3] = glGetUniformLocation(m_program, "lightPosition");
 	m_uniforms[4] = glGetUniformLocation(m_program, "lightsDirection");
 	m_uniforms[5] = glGetUniformLocation(m_program, "lightsIntensity");
-	m_uniforms[6] = glGetUniformLocation(m_program, "shine");
+	m_uniforms[6] = glGetUniformLocation(m_program, "ambient");
 	m_uniforms[7] = glGetUniformLocation(m_program, "sizes");
 }
 
