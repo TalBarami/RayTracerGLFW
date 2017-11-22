@@ -10,7 +10,7 @@ uniform vec4[10] lightPosition;// Positions for spotlights, w = shine
 uniform ivec3 sizes; //number of objects & number of lights
 
 in vec3 position1;
-float epsilon = 0.001;
+float epsilon = 0.005;
 
 float sphereIntersection(vec3 p0, vec3 v, vec4 sphere){
 	vec3 o = sphere.xyz;
@@ -221,6 +221,22 @@ vec3 colorCalc(vec3 intersectionPoint)
 	if(!isSphere(objects[intersection])){
 		diffuse *= coefficient;
 	}
+	
+	// Reflection:
+	if(eye.w == 2 || eye.w == 4){
+		float m = 0;
+		while(isSphere(objects[m]){
+			m++;
+		}
+		
+		if(intersection == m){
+			vec3 N = objects[m].xyz;
+			vec3 ray = p;
+			vec3 mirror = normalize(ray - (2 * N) * dot(ray, N));
+		}
+	}
+	
+	
 	
 	// Phong model:
 	vec3 result = vec3(0.0, 0.0, 0.0);

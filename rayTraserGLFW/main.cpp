@@ -13,7 +13,7 @@ using namespace glm;
 	
 int main(int argc,char** argv)
 {
-	scene scn = scene("res/scene.txt");
+	scene scn = scene("res/scene4.txt");
 	Display display(1000,1000,"hello!");
 	Shader shader("res/shaders/basicShader");
 	Vertex vertices[] = {Vertex(vec3(-1,-1,0),vec2(0,0),vec3(0,0,1)),Vertex(vec3(1,-1,0),vec2(0,0),vec3(0,0,1)),Vertex(vec3(1,1,0),vec2(0,0),vec3(0,0,1)),Vertex(vec3(-1,1,0),vec2(0,0),vec3(0,0,1))};
