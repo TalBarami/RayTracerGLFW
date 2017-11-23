@@ -160,7 +160,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	for(int i=0; i<objectsCount(); i++){
 		t_obj = intersection(intersectionPoint, v, objects[i]);
-		if(t_obj < distance && t_obj >= 0.001){
+		if(t_obj < distance && t_obj >= epsilon){
 			distance = t_obj;
 			intersection = i;
 		}
@@ -192,29 +192,29 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	for(int i=0; i<lightsCount(); i++){
 		vec3 L = vec3(0,0,0);
-		bool addLight = true;
+		bool isBlocked = false;
 		
 		if(isDirectional(lightsDirection[i])){
 			L = normalize(lightsDirection[i].xyz);
 		} else if(lightPosition[i].w < dot(normalize(lightsDirection[i].xyz), normalize(p - lightPosition[i].xyz))) {
 			L = normalize(p - lightPosition[i].xyz);
 		} else {
-			addLight = false;
+			isBlocked = true;
 		}
 		
 		for(int j=0; j<objectsCount(); j++){
 			if(isLightBlockedBy(p, -L, objects[j], i)){
-				addLight = false;
+				isBlocked = true;
 			}
 		}
 		
 		
-		if(addLight){
+		if(!isBlocked){
 			vec3 I = lightsIntensity[i].xyz;
-			vec3 R = normalize(L - (2 * N) * dot(L, N));
+			vec3 R = normalize(reflect(L, N));//normalize(L - (2 * N) * dot(L, N));
 			
 			diffuse += (Kd * dot(N, L)) * I;
-			specular += ((Ks * pow(dot(R, v), n)) * I);
+			specular += (Ks * pow(dot(R, v), n)) * I;
 		}
 	}
 	
@@ -223,17 +223,40 @@ vec3 colorCalc(vec3 intersectionPoint)
 	}
 	
 	// Reflection:
-	if(eye.w == 2 || eye.w == 4){
-		float m = 0;
-		while(isSphere(objects[m]){
+	vec3 reflection = vec3(0,0,0);
+	if(eye.w == 2.0 || eye.w == 4.0){
+		int m = 0;
+		while(isSphere(objects[m])){
 			m++;
 		}
 		
 		if(intersection == m){
-			vec3 N = objects[m].xyz;
-			vec3 ray = p;
-			vec3 mirror = normalize(ray - (2 * N) * dot(ray, N));
+			vec3 mirror = normalize(reflect(p, N));
+			
+			float distance = 100000000;
+			float t_object;
+			int mirroredObject = -1;
+			
+			for(int i=0; i<objectsCount(); i++){
+				t_object = intersection(p, mirror, objects[i]);
+				if(t_object < distance && t_object >= epsilon){
+					distance = t_object;
+					mirroredObject = i;
+				}
+			}
+			if(mirroredObject != -1){
+				reflection += objColors[mirroredObject].xyz * 0.3;	
+			}
 		}
+	}
+	
+	// Transparency:
+	vec3 transparency = vec3(0,0,0);
+	if(eye.w == 3.0 || eye.w == 4.0){
+		vec3 refraction = normalize(refract(p, N, 1.5));
+		
+		
+		
 	}
 	
 	
@@ -243,6 +266,8 @@ vec3 colorCalc(vec3 intersectionPoint)
 	result += ambient;
 	result += diffuse;
 	result += specular;
+	result += reflection;
+	result += transparency;
 
     return result;
 }
