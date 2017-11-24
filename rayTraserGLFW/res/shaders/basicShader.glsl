@@ -100,20 +100,21 @@ bool isLightBlockedBySphere(vec3 p, vec3 dir, vec4 sphere, int light){
 	float x1 = (-b + sqrt(delta)) / (2.0 * a);
 	float x2 = (-b - sqrt(delta)) / (2.0 * a); 
 	
-	
-	if(isDirectional(lightsDirection[light]) && (max(x1, x2) > epsilon)){
-		return true;
-	} else if(!isDirectional(lightsDirection[light]) && (x1 > epsilon || x2 > epsilon)) {
-		vec3 pMax = p + dir * min(x1, x2);
-		vec3 lightPos = lightPosition[light].xyz;
-		
-		float lightDistance = distance(lightPos, p);
-		float dMax = distance(lightPos, pMax) + distance(pMax, p);
-		
-		if(dMax + epsilon > lightDistance && dMax - epsilon < lightDistance) {
+	if(x1 > epsilon){
+		if(isDirectional(lightsDirection[light])){
 			return true;
+		} else{
+			vec3 pMax = p + dir * x1;//max(x1, x2);
+			vec3 lightPos = lightPosition[light].xyz;
+			
+			float lightDistance = distance(lightPos, p);
+			float dMax = distance(lightPos, pMax) + distance(pMax, p);
+			
+			if(dMax + epsilon > lightDistance && dMax - epsilon < lightDistance) {
+				return true;
+			}
 		}
-	} 
+	}
 	return false;
 	
 	
@@ -142,9 +143,12 @@ bool isLightBlockedByPlane(vec3 p, vec3 dir, vec4 plane, int light){
 	return false;
 }
 
+/*
+	Check if light with direction -dir to point p is blocked by object obj.
+*/
 bool isLightBlockedBy(vec3 p, vec3 dir, vec4 obj, int light){
 	if(isSphere(obj)){
-		return isLightBlockedBySphere(p, dir, obj, light);
+		return isLightBlockedBySphere(p, -dir, obj, light);
 	} else{
 		return isLightBlockedByPlane(p, dir, obj, light);
 	}
@@ -158,6 +162,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	float t_obj;
 	int intersection = -1;
 	
+	// find intersection between the eye and an object.
 	for(int i=0; i<objectsCount(); i++){
 		t_obj = intersection(intersectionPoint, v, objects[i]);
 		if(t_obj < distance && t_obj >= epsilon){
@@ -167,10 +172,13 @@ vec3 colorCalc(vec3 intersectionPoint)
 	}
 	
 	if(intersection == -1){
-		return vec3(0,0,0);
+		return vec3(0.0,0.0,0.0);
 	}
-
+	
+	// p represents the point in space of the relevant pixel.
 	vec3 p = intersectionPoint + distance * v;
+	
+	// planes are divided to squares. this boolean will determine the pixel color according to the square.
 	float coefficient = (!isSphere(objects[intersection]) &&
 							((squareCoefficient(p) && !quart1_3(p)) ||
 							 (!squareCoefficient(p) && quart1_3(p))))
@@ -191,8 +199,8 @@ vec3 colorCalc(vec3 intersectionPoint)
 	float n = objColors[intersection].w;
 	
 	for(int i=0; i<lightsCount(); i++){
-		vec3 L = vec3(0,0,0);
-		bool isBlocked = false;
+		vec3 L = vec3(0.0,0.0,0.0); // light's direction
+		bool isBlocked = false; // for shadow
 		
 		if(isDirectional(lightsDirection[i])){
 			L = normalize(lightsDirection[i].xyz);
@@ -203,7 +211,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 		}
 		
 		for(int j=0; j<objectsCount(); j++){
-			if(isLightBlockedBy(p, -L, objects[j], i)){
+			if(isLightBlockedBy(p, L, objects[j], i)){
 				isBlocked = true;
 			}
 		}
@@ -229,14 +237,12 @@ vec3 colorCalc(vec3 intersectionPoint)
 		while(isSphere(objects[m])){
 			m++;
 		}
-		
 		if(intersection == m){
 			vec3 mirror = normalize(reflect(p, N));
 			
 			float distance = 100000000;
 			float t_object;
-			int mirroredObject = -1;
-			
+			int mirroredObject = -1;	
 			for(int i=0; i<objectsCount(); i++){
 				t_object = intersection(p, mirror, objects[i]);
 				if(t_object < distance && t_object >= epsilon){
@@ -253,9 +259,21 @@ vec3 colorCalc(vec3 intersectionPoint)
 	// Transparency:
 	vec3 transparency = vec3(0,0,0);
 	if(eye.w == 3.0 || eye.w == 4.0){
-		vec3 refraction = normalize(refract(p, N, 1.5));
+		vec3 refraction = -normalize(refract(p, N, 1.5));
 		
-		
+		float distance = 100000000;
+		float t_object;
+		int refractedObject = -1;
+		for(int i=0; i<objectsCount(); i++){
+			t_object = intersection(p, refraction, objects[i]);
+			if(t_object < distance && t_object >= epsilon){
+				distance = t_object;
+				refractedObject = i;
+			}
+		}
+		if(refractedObject != -1){
+			transparency += objColors[refractedObject].xyz * 0.1;	
+		}
 		
 	}
 	
