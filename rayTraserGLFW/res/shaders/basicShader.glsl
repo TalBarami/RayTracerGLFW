@@ -104,39 +104,18 @@ bool isLightBlockedBySphere(vec3 p, vec3 dir, vec4 sphere, int light){
 		if(isDirectional(lightsDirection[light])){
 			return true;
 		} else{
-			vec3 pMax = p + dir * x1;//max(x1, x2);
-			vec3 lightPos = lightPosition[light].xyz;
+			vec3 xIntersection = p + dir * x1;
+			vec3 lightPositon = lightPosition[light].xyz;
 			
-			float lightDistance = distance(lightPos, p);
-			float dMax = distance(lightPos, pMax) + distance(pMax, p);
+			float lightDistance = distance(lightPositon, p);
+			float actualDistance = distance(lightPositon, xIntersection) + distance(xIntersection, p);
 			
-			if(dMax + epsilon > lightDistance && dMax - epsilon < lightDistance) {
+			if(actualDistance + epsilon > lightDistance && actualDistance - epsilon < lightDistance) {
 				return true;
 			}
 		}
 	}
 	return false;
-	
-	
-	/*if(x1 > epsilon || x2 > epsilon){
-		if(isDirectional(lightsDirection[light])){
-			return true;
-		} else {
-			vec3 p1 = p + dir * x1;
-			vec3 p2 = p + dir * x2;
-			vec3 lightPos = lightPosition[light].xyz;
-			
-			float lightDistance = distance(lightPos, p);
-			float d1 = distance(lightPos, p1) + distance(p1, p);
-			float d2 = distance(lightPos, p2) + distance(p2, p);
-			
-			if((d1 + epsilon > lightDistance && d1 - epsilon < lightDistance) || (d2 + epsilon > lightDistance && d2 - epsilon < lightDistance)){
-				return true;
-			}
-		}
-	}
-	return false;*/
-	
 }
 
 bool isLightBlockedByPlane(vec3 p, vec3 dir, vec4 plane, int light){
@@ -156,6 +135,9 @@ bool isLightBlockedBy(vec3 p, vec3 dir, vec4 obj, int light){
 
 vec3 colorCalc(vec3 intersectionPoint)
 {
+	bool addReflection = (int(eye.w) & 1) == 1;
+	bool addTransparency = (int(eye.w) & 2) == 2;
+	
 	vec3 v = normalize(position1 - intersectionPoint);
 	
 	float distance = 100000000;
@@ -219,7 +201,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 		
 		if(!isBlocked){
 			vec3 I = lightsIntensity[i].xyz;
-			vec3 R = normalize(reflect(L, N));//normalize(L - (2 * N) * dot(L, N));
+			vec3 R = normalize(reflect(L, N));
 			
 			diffuse += (Kd * dot(N, L)) * I;
 			specular += (Ks * pow(dot(R, v), n)) * I;
@@ -232,7 +214,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	// Reflection:
 	vec3 reflection = vec3(0,0,0);
-	if(eye.w == 2.0 || eye.w == 4.0){
+	if(addReflection){
 		int m = 0;
 		while(isSphere(objects[m])){
 			m++;
@@ -244,10 +226,12 @@ vec3 colorCalc(vec3 intersectionPoint)
 			float t_object;
 			int mirroredObject = -1;	
 			for(int i=0; i<objectsCount(); i++){
-				t_object = intersection(p, mirror, objects[i]);
-				if(t_object < distance && t_object >= epsilon){
-					distance = t_object;
-					mirroredObject = i;
+				if(i != intersection){
+					t_object = intersection(p, mirror, objects[i]);
+					if(t_object < distance && t_object >= epsilon){
+						distance = t_object;
+						mirroredObject = i;
+					}
 				}
 			}
 			if(mirroredObject != -1){
@@ -258,23 +242,24 @@ vec3 colorCalc(vec3 intersectionPoint)
 	
 	// Transparency:
 	vec3 transparency = vec3(0,0,0);
-	if(eye.w == 3.0 || eye.w == 4.0){
-		vec3 refraction = -normalize(refract(p, N, 1.5));
+	if(addTransparency){
+		vec3 refraction = normalize(refract(p, N, 1.0));
 		
 		float distance = 100000000;
 		float t_object;
 		int refractedObject = -1;
 		for(int i=0; i<objectsCount(); i++){
-			t_object = intersection(p, refraction, objects[i]);
-			if(t_object < distance && t_object >= epsilon){
-				distance = t_object;
-				refractedObject = i;
+			if(i != intersection){
+				t_object = intersection(p, refraction, objects[i]);
+				if(t_object < distance && t_object >= epsilon){
+					distance = t_object;
+					refractedObject = i;
+				}
 			}
 		}
 		if(refractedObject != -1){
-			transparency += objColors[refractedObject].xyz * 0.1;	
+			transparency += objColors[refractedObject].xyz * 0.3;	
 		}
-		
 	}
 	
 	
