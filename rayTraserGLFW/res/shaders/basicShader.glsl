@@ -157,26 +157,37 @@ vec3 colorCalc(vec3 intersectionPoint)
 		return vec3(0.0,0.0,0.0);
 	}
 	
+	
 	// p represents the point in space of the relevant pixel.
 	vec3 p = intersectionPoint + distance * v;
+	
+	vec3 intersectionColor = objColors[intersection].xyz;
 	
 	// planes are divided to squares. this boolean will determine the pixel color according to the square.
 	float coefficient = (!isSphere(objects[intersection]) &&
 							((squareCoefficient(p) && !quart1_3(p)) ||
 							 (!squareCoefficient(p) && quart1_3(p))))
 						 ? 1.0 : 0.5;
-						 
+	
+	int firstPlane = 0;
+	while(isSphere(objects[firstPlane])){
+		firstPlane++;
+	}
+	if(addReflection && intersection == firstPlane){
+		intersectionColor = vec3(0.0, 0.0, 0.0);
+		coefficient = 1.0;
+	}
 						 
 	
 	/******** Lighting *********/
 	// Ambient calculations
-	vec3 ambient = (ambient.xyz * objColors[intersection].xyz);
+	vec3 ambient = (ambient.xyz * intersectionColor);
 	// Diffuse and Specular calculations
 	vec3 diffuse = vec3(0.0, 0.0, 0.0);
 	vec3 specular = vec3(0.0, 0.0, 0.0);
 	
 	vec3 N = normalize(isSphere(objects[intersection]) ? (objects[intersection].xyz - p) : objects[intersection].xyz);
-	vec3 Kd = objColors[intersection].xyz;
+	vec3 Kd = intersectionColor.xyz;
 	vec3 Ks = vec3(0.7, 0.7, 0.7);
 	float n = objColors[intersection].w;
 	
@@ -215,11 +226,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 	// Reflection:
 	vec3 reflection = vec3(0,0,0);
 	if(addReflection){
-		int m = 0;
-		while(isSphere(objects[m])){
-			m++;
-		}
-		if(intersection == m){
+		if(intersection == firstPlane){
 			vec3 mirror = normalize(reflect(p, N));
 			
 			float distance = 100000000;
@@ -235,7 +242,7 @@ vec3 colorCalc(vec3 intersectionPoint)
 				}
 			}
 			if(mirroredObject != -1){
-				reflection += objColors[mirroredObject].xyz * 0.3;	
+				reflection += objColors[mirroredObject].xyz * 0.6;	
 			}
 		}
 	}
