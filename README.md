@@ -1,4 +1,4 @@
-# RayTraserGLFW
+# RayTracerGLFW
 Computer Graphics - Assignment1
 
 Implementation of a ray tracer using openGL. 
@@ -13,3 +13,12 @@ From the third row we will describe the object and lights in scene:
 * Light intensity will describe by "i" followed by light intensity (R, G, B, A).
 * Spheres and planes will description will appear after "o". For spheres (x,y,z,r) when (x,y,z) is the center position and r is the radius (always positive, greater than zero). For planes (a,b,c,d) which represents the coefficients of the plane equation when 'd' gets is a non positive value.  
 * The color of an object will appears after "c" and will represent the ambient and diffuse values (R,G,B,A). 'A' represents the shininess parameter value.
+
+
+![scene1](https://github.com/TalBarami/RayTracerGLFW/blob/master/resources/scene1.png "scene1")
+
+
+![scene3](https://github.com/TalBarami/RayTracerGLFW/blob/master/resources/scene3.png "scene3")
+
+
+![scene4](https://github.com/TalBarami/RayTracerGLFW/blob/master/resources/scene4.png "scene4")
